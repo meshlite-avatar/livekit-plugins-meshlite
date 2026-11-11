@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshLite avatar with a LiveKit agent</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0f1115; color: #e8e8e8;
+           font: 16px/1.4 system-ui, sans-serif; }
+    main { width: min(360px, 100% - 32px); text-align: center; }
+    #avatar { width: 100%; aspect-ratio: 2 / 3; border-radius: 16px; overflow: hidden; background: #1a1d24; }
+    #status { min-height: 2.8em; margin: 12px 0; color: #b8bcc6; }
+    .buttons { display: flex; gap: 8px; justify-content: center; }
+    button { font: inherit; padding: 10px 18px; border: 0; border-radius: 999px; cursor: pointer; }
+    #start { background: #4f7cff; color: #fff; }
+    #sound { background: #f0b429; color: #111; }
+    #end { background: #2a2e37; color: #e8e8e8; }
+    button:disabled { opacity: .45; cursor: default; }
+  </style>
+</head>
+<body>
+<main>
+  <div id="avatar"></div>
+  <p id="status">Press Start and allow the microphone.</p>
+  <div class="buttons">
+    <button id="start">Start</button>
+    <button id="sound" hidden>Enable sound</button>
+    <button id="end" disabled>End</button>
+  </div>
+</main>
+
+<!-- The MeshLite web SDK (the server fills in the version). -->
+<script src="__MESHLITE_SDK__" crossorigin="anonymous"></script>
+<script type="module">
+  import { Room } from "https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/+esm";
+
+  const $ = (id) => document.getElementById(id);
+  const say = (text) => { $("status").textContent = text; };
+  let avatar = null, room = null, link = null, ending = false;
+
+  async function start() {
+    $("start").disabled = true;
+    say("Connecting…");
+    try {
+      const response = await fetch("/api/session", { method: "POST" });
+      const s = await response.json();
+      if (!response.ok) throw new Error(s.code || s.error || `HTTP ${response.status}`);
+
+      avatar = MeshLite.mount({
+        container: "#avatar",
+        avatar: s.avatar,
+        publishableKey: s.publishableKey,
+        sessionToken: s.sessionToken,
+        audio: "livekit",
+      });
+
+      room = new Room({
+        audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      link = avatar.attachLiveKit(room); // attach before connect so no speech is missed
+      link.on("ready", ({ output }) => say(`Avatar ready (voice played by the ${output}). Say hello!`));
+      link.on("fallback", ({ code }) => say(`Avatar unavailable (${code}): the voice continues without the face.`));
+      link.on("audio-blocked", () => { $("sound").hidden = false; });
+      link.on("failed", ({ code }) => { say(`Avatar failed (${code}).`); end(); });
+      link.on("stopped", ({ reason }) => { if (!ending) { say(`Session ended (${reason}).`); end(); } });
+
+      await room.connect(s.livekitUrl, s.participantToken);
+      await room.localParticipant.setMicrophoneEnabled(true);
+      $("end").disabled = false;
+    } catch (error) {
+      say(`Could not start: ${error.message || error}`);
+      end();
+    }
+  }
+
+  async function end() {
+    if (ending) return;
+    ending = true;
+    try { await room?.disconnect(); } catch {}
+    try { avatar?.unmount(); } catch {}
+    avatar = room = link = null;
+    $("sound").hidden = true;
+    $("end").disabled = true;
+    $("start").disabled = false;
+    ending = false;
+  }
+
+  $("start").addEventListener("click", start);
+  $("end").addEventListener("click", () => { end(); say("Conversation ended."); });
+  $("sound").addEventListener("click", async () => { await link?.resumeAudio(); $("sound").hidden = true; });
+</script>
+</body>
+</html>

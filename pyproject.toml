@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "livekit-plugins-meshlite"
+dynamic = ["version"]
+description = "MeshLite avatar for LiveKit Agents: the agent voice drives a lip-synced avatar rendered in the visitor's browser"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "MeshLite" }]
+keywords = ["livekit", "agents", "avatar", "meshlite", "webrtc", "realtime", "lip-sync"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
+]
+dependencies = ["livekit-agents>=1.0.0,<2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[project.urls]
+Homepage = "https://meshlite.io"
+Documentation = "https://github.com/meshlite-avatar/livekit-plugins-meshlite#readme"
+Source = "https://github.com/meshlite-avatar/livekit-plugins-meshlite"
+Issues = "https://github.com/meshlite-avatar/livekit-plugins-meshlite/issues"
+
+[tool.hatch.version]
+path = "livekit/plugins/meshlite/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["livekit"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/livekit", "/README.md", "/LICENSE"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
