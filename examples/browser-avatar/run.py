@@ -50,10 +50,19 @@ REQUIRED: Dict[str, str] = {
     "LIVEKIT_URL": "address of your LiveKit server: wss://<project>.livekit.cloud, or ws://localhost:7880 with livekit-server --dev",
     "LIVEKIT_API_KEY": "LiveKit API key",
     "LIVEKIT_API_SECRET": "LiveKit API secret",
-    "OPENAI_API_KEY": "OpenAI API key used by the example agent",
     "MESHLITE_PUBLISHABLE_KEY": "MeshLite publishable key (Console: Projects, For developers, Keys), starts with ml_pk_",
     "MESHLITE_SECRET_KEY": "MeshLite secret key (Console: Projects, For developers, Keys), starts with ml_sk_",
     "MESHLITE_AVATAR": "avatar id (Console: Projects, For developers, Code)",
+}
+
+# The model of the example agent: OpenAI by default, Azure OpenAI when AZURE_OPENAI_ENDPOINT is set
+# (the same rule as agent.py).
+OPENAI_SETTINGS: Dict[str, str] = {
+    "OPENAI_API_KEY": "OpenAI API key used by the example agent (or set the AZURE_OPENAI_* settings to use Azure OpenAI)",
+}
+AZURE_SETTINGS: Dict[str, str] = {
+    "AZURE_OPENAI_API_KEY": "key of your Azure OpenAI resource",
+    "AZURE_OPENAI_DEPLOYMENT": "name of your Azure OpenAI realtime deployment (for example gpt-realtime)",
 }
 
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
@@ -111,7 +120,8 @@ def effective_settings(file_values: Mapping[str, str], environ: Mapping[str, str
     """Process environment wins over .env, like python-dotenv does in agent.py and server.py."""
     merged: Dict[str, str] = dict(file_values)
     for name, value in environ.items():
-        if name in REQUIRED or name in ("PORT", "PUBLIC_ORIGIN", "MESHLITE_API", "MESHLITE_SDK_VERSION"):
+        if (name in REQUIRED or name in OPENAI_SETTINGS or name in AZURE_SETTINGS
+                or name in ("AZURE_OPENAI_ENDPOINT", "PORT", "PUBLIC_ORIGIN", "MESHLITE_API", "MESHLITE_SDK_VERSION")):
             if value.strip():
                 merged[name] = value
     return merged
@@ -123,6 +133,17 @@ def validate(settings: Mapping[str, str]) -> Tuple[List[str], List[str]]:
     warnings: List[str] = []
 
     for name, hint in REQUIRED.items():
+        if is_unset(settings.get(name)):
+            problems.append(f"{name} is not set: {hint}")
+
+    endpoint = settings.get("AZURE_OPENAI_ENDPOINT", "")
+    if is_unset(endpoint):
+        model_settings = OPENAI_SETTINGS
+    else:
+        model_settings = AZURE_SETTINGS
+        if urlparse(endpoint).scheme != "https":
+            problems.append("AZURE_OPENAI_ENDPOINT must start with https:// (for example https://my-resource.openai.azure.com)")
+    for name, hint in model_settings.items():
         if is_unset(settings.get(name)):
             problems.append(f"{name} is not set: {hint}")
 

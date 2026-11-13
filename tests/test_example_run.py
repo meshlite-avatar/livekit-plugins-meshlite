@@ -39,7 +39,45 @@ def test_env_example_is_reported_as_unset(run):
     example = run.read_env_file(run.ENV_EXAMPLE)
     problems, _ = run.validate(example)
     named = {problem.split(" ")[0] for problem in problems}
-    assert named == set(run.REQUIRED)
+    assert named == set(run.REQUIRED) | {"OPENAI_API_KEY"}
+
+
+AZURE = {
+    "AZURE_OPENAI_ENDPOINT": "https://my-resource.openai.azure.com",
+    "AZURE_OPENAI_API_KEY": "azureKeyValue7",
+    "AZURE_OPENAI_DEPLOYMENT": "gpt-realtime",
+}
+
+
+def without_openai(settings):
+    return {name: value for name, value in settings.items() if name != "OPENAI_API_KEY"}
+
+
+def test_azure_settings_replace_the_openai_key(run):
+    problems, warnings = run.validate(dict(without_openai(GOOD), **AZURE))
+    assert problems == []
+    assert warnings == []
+
+
+def test_azure_endpoint_asks_for_the_azure_key_and_deployment(run):
+    settings = dict(GOOD, AZURE_OPENAI_ENDPOINT=AZURE["AZURE_OPENAI_ENDPOINT"])
+    named = {problem.split(" ")[0] for problem in run.validate(settings)[0]}
+    assert named == {"AZURE_OPENAI_API_KEY", "AZURE_OPENAI_DEPLOYMENT"}
+
+
+def test_azure_endpoint_must_be_https(run):
+    settings = dict(without_openai(GOOD), **dict(AZURE, AZURE_OPENAI_ENDPOINT="http://my-resource.openai.azure.com"))
+    assert any(p.startswith("AZURE_OPENAI_ENDPOINT must start with https://") for p in run.validate(settings)[0])
+
+
+def test_missing_model_key_names_openai_when_no_azure_endpoint(run):
+    named = {problem.split(" ")[0] for problem in run.validate(without_openai(GOOD))[0]}
+    assert named == {"OPENAI_API_KEY"}
+
+
+def test_azure_variables_can_come_from_the_process_environment(run):
+    merged = run.effective_settings({}, dict(AZURE, HOME="/x"))
+    assert merged == AZURE
 
 
 def test_parser_handles_quotes_comments_and_export(run, tmp_path):

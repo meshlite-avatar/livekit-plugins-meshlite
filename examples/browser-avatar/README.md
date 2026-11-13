@@ -26,7 +26,7 @@ page; `--no-install` leaves the virtual environment alone.
 | File | Role |
 |---|---|
 | `run.py` | one-command launcher (virtual environment, `.env` check, agent + server, clean stop) |
-| `agent.py` | LiveKit agent (OpenAI realtime model) whose voice is routed to the avatar by `livekit-plugins-meshlite` |
+| `agent.py` | LiveKit agent (OpenAI or Azure OpenAI realtime model) whose voice is routed to the avatar by `livekit-plugins-meshlite` |
 | `server.py` | serves the page and creates the LiveKit participant token and the MeshLite session token (`audio: "livekit"`) |
 | `index.html` | the visitor page: mounts the avatar, attaches the LiveKit room, publishes the microphone |
 
@@ -39,7 +39,13 @@ page; `--no-install` leaves the virtual environment alone.
   [`livekit-server`](https://docs.livekit.io/home/self-hosting/local/) installed, set
   `LIVEKIT_URL=ws://localhost:7880`, `LIVEKIT_API_KEY=devkey` and `LIVEKIT_API_SECRET=secret`:
   `run.py` then starts `livekit-server --dev` for you and stops it with the rest.
-- **OpenAI**: an API key for the example agent (or swap in any other model in `agent.py`).
+- **OpenAI**: an API key for the example agent (`OPENAI_API_KEY`), or swap in any other model
+  in `agent.py`.
+- **Azure OpenAI instead of OpenAI**: deploy a realtime model in your Azure resource, then
+  uncomment the three `AZURE_OPENAI_*` lines in `.env` (endpoint such as
+  `https://my-resource.openai.azure.com`, key, deployment name). When `AZURE_OPENAI_ENDPOINT`
+  is set, the agent uses Azure and `OPENAI_API_KEY` is not needed. If your resource restricts
+  network access, allow the machine that runs the agent.
 
 ## What you should see
 
@@ -79,7 +85,14 @@ python server.py                 # terminal 2
   declared as a domain in the MeshLite console.
 - **No voice on the page**: click **Enable sound** if it appears (browsers need a click
   before they play sound), and check that the agent line `registered worker` is in the log.
-- **The agent does not answer**: check `OPENAI_API_KEY`, and the `[agent]` lines for errors.
+- **The agent does not answer**: check `OPENAI_API_KEY` (or the `AZURE_OPENAI_*` settings),
+  and the `[agent]` lines for errors. `403 ... Virtual Network/Firewall rules` from Azure means
+  the resource does not allow this machine's address.
+- **The page says it is connected but nobody answers, and the `[agent]` log is silent**: by
+  default a LiveKit worker refuses new visitors while its machine's CPU is above 70 %, and the
+  browser that draws the avatar often keeps a laptop that busy. This example turns that check
+  off (`load_fnc=no_load` in `agent.py`). Keep it for local tests; remove it for a worker that
+  runs alone on a server, so that LiveKit can spread visitors between workers.
 - **Port already in use**: change `PORT` in `.env` (and declare the new address as a domain).
 
 ## Going live

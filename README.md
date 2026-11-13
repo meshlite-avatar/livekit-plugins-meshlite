@@ -151,7 +151,7 @@ Windows, macOS and Linux:
 git clone https://github.com/meshlite-avatar/livekit-plugins-meshlite
 cd livekit-plugins-meshlite/examples/browser-avatar
 cp .env.example .env     # Windows: copy .env.example .env
-# fill in .env: LiveKit, OpenAI, and your MeshLite test keys and avatar id
+# fill in .env: LiveKit, OpenAI (or Azure OpenAI), and your MeshLite test keys and avatar id
 python run.py
 ```
 
