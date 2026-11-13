@@ -143,6 +143,20 @@ heard, the agent keeps receiving playback events and interruptions, and `link` e
 
 [`examples/browser-avatar`](examples/browser-avatar) is a complete local demo: a LiveKit
 agent, a small Python server that creates both session tokens, and a page with the avatar.
+Fill in its `.env` once, then one command does everything (virtual environment,
+dependencies, `.env` check, agent and server together, browser, clean stop on Ctrl+C), on
+Windows, macOS and Linux:
+
+```bash
+git clone https://github.com/meshlite-avatar/livekit-plugins-meshlite
+cd livekit-plugins-meshlite/examples/browser-avatar
+cp .env.example .env     # Windows: copy .env.example .env
+# fill in .env: LiveKit, OpenAI, and your MeshLite test keys and avatar id
+python run.py
+```
+
+See [its README](examples/browser-avatar/README.md) for the accounts to prepare and what
+you should see.
 
 ## Development
 

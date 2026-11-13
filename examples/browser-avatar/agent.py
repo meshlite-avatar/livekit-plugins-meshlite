@@ -4,7 +4,7 @@ The agent talks with an OpenAI realtime model (any STT + LLM + TTS pipeline work
 same way). The MeshLite plugin sends its voice to the visitor's page, where the avatar
 speaks it with matching lips.
 
-Run:  python agent.py dev
+Run:  python run.py   (starts this agent and the web server together)
 """
 
 from __future__ import annotations
@@ -40,4 +40,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    # load_threshold=1.0: in "start" mode the worker stops accepting visitors when the machine
+    # is above 70 % CPU, and the browser that draws the avatar often runs on this same
+    # machine. Keep the default (0.7) for a production worker on its own server.
+    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, load_threshold=1.0))
