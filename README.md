@@ -90,7 +90,7 @@ const { sessionToken } = await upstream.json();
 
 ```html
 <div id="avatar" style="width:340px;height:510px"></div>
-<script src="https://console.meshlite.io/sdk/1.11.46/meshlite.js" crossorigin="anonymous"></script>
+<script src="https://console.meshlite.io/sdk/1.11.52/meshlite.js" crossorigin="anonymous"></script>
 <script type="module">
   import { Room } from "https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/+esm";
 
@@ -157,6 +157,23 @@ python run.py
 
 See [its README](examples/browser-avatar/README.md) for the accounts to prepare and what
 you should see.
+
+### Pipecat bots (no LiveKit)
+
+[`examples/pipecat-browser-avatar`](examples/pipecat-browser-avatar) gives a
+[Pipecat](https://docs.pipecat.ai/) bot the same face, without LiveKit and without this
+plugin: the page hands the bot's WebRTC audio track to the MeshLite web SDK with
+`avatar.attachPipecat(client)`, and the bot itself needs no change. Same single command
+(`python run.py`, Python 3.11 or later), with an OpenAI or Azure OpenAI realtime model:
+
+```bash
+cd livekit-plugins-meshlite/examples/pipecat-browser-avatar
+cp .env.example .env     # Windows: copy .env.example .env
+# fill in .env: OpenAI (or Azure OpenAI), and your MeshLite test keys and avatar id
+python run.py
+```
+
+Step-by-step guide: [meshlite.io/docs#pipecat](https://meshlite.io/docs#pipecat).
 
 ## Development
 

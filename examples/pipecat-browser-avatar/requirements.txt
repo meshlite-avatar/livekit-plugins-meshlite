@@ -1,0 +1,5 @@
+pipecat-ai[webrtc,openai]==1.16.0
+fastapi>=0.115
+uvicorn>=0.30
+aiohttp>=3.9
+python-dotenv>=1.0

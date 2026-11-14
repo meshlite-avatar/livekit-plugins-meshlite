@@ -32,7 +32,7 @@ MESHLITE_API = os.environ.get("MESHLITE_API", "https://console.meshlite.io").rst
 MESHLITE_PUBLISHABLE_KEY = os.environ["MESHLITE_PUBLISHABLE_KEY"]
 MESHLITE_SECRET_KEY = os.environ["MESHLITE_SECRET_KEY"]
 MESHLITE_AVATAR = os.environ["MESHLITE_AVATAR"]
-MESHLITE_SDK_VERSION = os.environ.get("MESHLITE_SDK_VERSION", "1.11.46")
+MESHLITE_SDK_VERSION = os.environ.get("MESHLITE_SDK_VERSION", "1.11.52")
 # The address of this page. It must be declared as a domain in the MeshLite console
 # (http://localhost is accepted for test keys only).
 PUBLIC_ORIGIN = os.environ.get("PUBLIC_ORIGIN", "http://localhost:8080").rstrip("/")
