@@ -2,7 +2,8 @@
 
 Give your [LiveKit Agents](https://docs.livekit.io/agents/) voice agent a lip-synced
 [MeshLite](https://meshlite.io) face. Your agent keeps its own speech-to-text, LLM and
-voice (or realtime model); MeshLite only renders the face, in the visitor's browser.
+voice (or realtime model); MeshLite only renders the face, on the visitor's own phone
+or computer.
 
 ```
 your agent (Python)  --lk.audio_stream-->  visitor page (livekit-client)  -->  MeshLite avatar (face + lips)

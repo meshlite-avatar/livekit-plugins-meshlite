@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "livekit-plugins-meshlite"
 dynamic = ["version"]
-description = "MeshLite avatar for LiveKit Agents: the agent voice drives a lip-synced avatar rendered in the visitor's browser"
+description = "MeshLite avatar for LiveKit Agents: the agent voice drives a lip-synced avatar drawn on the user's own device"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
