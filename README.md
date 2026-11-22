@@ -52,6 +52,27 @@ page as data and the MeshLite SDK plays it in sync with the face.
 | `visitor_identity` | first standard participant | browser participant whose page shows the avatar |
 | `sample_rate` | `24000` | PCM rate sent to the page (8000 to 48000) |
 | `clear_buffer_timeout` | `2.0` | seconds to wait for the page to confirm an interruption |
+| `follow_language` | `True` | send the language of each agent reply to the page (see below) |
+
+### Language of the lips
+
+MeshLite computes the lips with one small speech model per language (English, French,
+Mandarin Chinese). Since 0.2.0, at the end of each agent reply `AvatarSession` recognises
+the language of the reply text and, when it changed, tells the page with the RPC
+`meshlite.set_language` (`{"language": "en" | "fr" | "zh-CN"}`). The page (MeshLite web
+SDK 1.11.62 or later) switches the lip model from the next reply on. Short or ambiguous
+replies, and other languages, change nothing; an older page answers "unsupported method",
+which is logged and retried at the next reply.
+
+```python
+avatar = meshlite.AvatarSession(follow_language=False)   # keep the session language
+await avatar.set_language("en")                          # or force one: "en", "fr", "zh-CN"
+avatar.language                                          # last language the page accepted
+```
+
+`meshlite.spoken_language_of(text)` exposes the detection rule (the same as the MeshLite
+managed voice): Chinese when at least 4 ideographs make more than 30 % of the letters,
+otherwise French or English when at least 4 common words lean two to one, else `None`.
 
 ### Audio format
 
