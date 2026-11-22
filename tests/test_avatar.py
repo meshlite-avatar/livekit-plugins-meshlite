@@ -104,8 +104,29 @@ class FakeRoom:
         )
 
 
-def fake_session():
-    return SimpleNamespace(output=SimpleNamespace(audio=None))
+class FakeSession:
+    def __init__(self) -> None:
+        self.output = SimpleNamespace(audio=None)
+        self._handlers: dict[str, list] = {}
+
+    def on(self, event, callback=None):
+        self._handlers.setdefault(event, []).append(callback)
+        return callback
+
+    def off(self, event, callback) -> None:
+        self._handlers[event].remove(callback)
+
+    def emit(self, event, *args) -> None:
+        for callback in list(self._handlers.get(event, [])):
+            callback(*args)
+
+    def say(self, text: str, role: str = "assistant") -> None:
+        item = SimpleNamespace(role=role, text_content=text)
+        self.emit("conversation_item_added", SimpleNamespace(item=item))
+
+
+def fake_session() -> FakeSession:
+    return FakeSession()
 
 
 def visitor() -> str:
@@ -291,3 +312,89 @@ async def test_playback_events_from_someone_else_are_rejected() -> None:
     payload = json.dumps({"playback_position": 1.0, "interrupted": False})
     assert room.rpc("lk.playback_finished", "intruder", payload) == "reject"
     assert room.rpc("lk.playback_started", "intruder") == "reject"
+
+
+def languages_sent(room: FakeRoom) -> list[str]:
+    return [
+        json.loads(rpc["payload"])["language"]
+        for rpc in room.local_participant.rpcs
+        if rpc["method"] == meshlite.SET_LANGUAGE_RPC
+    ]
+
+
+async def test_lips_follow_the_language_the_agent_speaks() -> None:
+    room, session, identity = FakeRoom(), fake_session(), visitor()
+    avatar = meshlite.AvatarSession(visitor_identity=identity)
+    await avatar.start(session, room)
+    session.say("Hello, I am happy to help you with this today.")
+    session.say("Bonjour, je suis très content de vous aider avec ça.", role="user")
+    await asyncio.sleep(0.01)
+    session.say("Bien sûr, je vais vous expliquer comment ça marche.")
+    await asyncio.sleep(0.01)
+    session.say("Oui, et c'est très simple pour vous.")  # same language: nothing sent
+    session.say("好的，我们现在用中文继续聊天吧。")
+    await asyncio.sleep(0.01)
+    session.say("Of course, we can go back to English if you like.")
+    await asyncio.sleep(0.01)
+    assert languages_sent(room) == ["en", "fr", "zh-CN", "en"]
+    assert avatar.language == "en"
+    rpc = room.local_participant.rpcs[0]
+    assert rpc["destination_identity"] == identity
+    assert rpc["response_timeout"] == pytest.approx(5.0)
+
+
+async def test_unclear_replies_keep_the_language() -> None:
+    room, session = FakeRoom(), fake_session()
+    await meshlite.AvatarSession(visitor_identity=visitor()).start(session, room)
+    session.say("OK!")
+    session.say("Sure, d'accord, yes, oui, merci, thanks.")
+    session.say("Hola, ¿cómo estás? Muy bien, gracias por preguntar.")
+    session.say("")
+    await asyncio.sleep(0.01)
+    assert languages_sent(room) == []
+
+
+async def test_older_page_answers_unsupported_and_is_asked_again(caplog) -> None:
+    room, session = FakeRoom(), fake_session()
+    avatar = meshlite.AvatarSession(visitor_identity=visitor())
+    await avatar.start(session, room)
+    room.local_participant.rpc_result = rtc.RpcError(
+        rtc.RpcError.ErrorCode.UNSUPPORTED_METHOD, "Method not supported at destination"
+    )
+    with caplog.at_level(logging.INFO, logger="livekit.plugins.meshlite"):
+        session.say("Bien sûr, je vais vous expliquer comment ça marche.")
+        await asyncio.sleep(0.01)
+    assert avatar.language is None
+    assert "1.11.62" in caplog.text
+    room.local_participant.rpc_result = "ok"
+    session.say("Oui, et c'est très simple pour vous.")
+    await asyncio.sleep(0.01)
+    assert languages_sent(room) == ["fr", "fr"]
+    assert avatar.language == "fr"
+
+
+async def test_follow_language_can_be_turned_off() -> None:
+    room, session = FakeRoom(), fake_session()
+    avatar = meshlite.AvatarSession(visitor_identity=visitor(), follow_language=False)
+    await avatar.start(session, room)
+    session.say("Bien sûr, je vais vous expliquer comment ça marche.")
+    await asyncio.sleep(0.01)
+    assert languages_sent(room) == []
+    assert await avatar.set_language("zh-CN") is True
+    assert await avatar.set_language("zh-CN") is True  # already set: no second call
+    assert languages_sent(room) == ["zh-CN"]
+    with pytest.raises(ValueError):
+        await avatar.set_language("es")
+
+
+async def test_aclose_stops_following_the_language() -> None:
+    room, session = FakeRoom(), fake_session()
+    avatar = meshlite.AvatarSession(visitor_identity=visitor())
+    with pytest.raises(RuntimeError):
+        await avatar.set_language("fr")
+    await avatar.start(session, room)
+    await avatar.aclose()
+    session.say("Bien sûr, je vais vous expliquer comment ça marche.")
+    await asyncio.sleep(0.01)
+    assert languages_sent(room) == []
+    assert session._handlers["conversation_item_added"] == []
