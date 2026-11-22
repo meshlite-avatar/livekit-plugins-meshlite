@@ -11,7 +11,7 @@ import tarfile
 import zipfile
 from pathlib import Path
 
-PLUGIN = r"livekit/plugins/meshlite/(__init__\.py|avatar\.py|log\.py|version\.py|py\.typed)"
+PLUGIN = r"livekit/plugins/meshlite/(__init__\.py|avatar\.py|languages\.py|log\.py|version\.py|py\.typed)"
 WHEEL_OK = re.compile(
     rf"^({PLUGIN}|livekit_plugins_meshlite-[^/]+\.dist-info/(METADATA|WHEEL|RECORD|licenses/LICENSE))$"
 )
